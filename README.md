@@ -1,5 +1,8 @@
 ## SpringStudy
 
+## Spring Study 목적
+* 작성 예정
+
 ## Commit Message 규칙
 * [강의] 섹션 N. 강의명
 ## 파일 및 폴더 구조
