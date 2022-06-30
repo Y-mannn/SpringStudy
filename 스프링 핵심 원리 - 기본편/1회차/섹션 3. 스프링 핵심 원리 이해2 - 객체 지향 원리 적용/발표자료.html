@@ -1,0 +1,1394 @@
+
+<h3 data-ke-size="size23"><b>1. 새로운 할인 정책 개발</b></h3>
+<p data-ke-size="size18"><b>1. 새로운 할인 정책을 확장해보자</b></p>
+<p>
+  [##_Image|kage@P2f8Q/btrF5NUTrpT/Qx8yW0FxaWJ44sieIQfap1/img.png|CDM|1.3|{"originWidth":701,"originHeight":55,"style":"alignCenter"}_##][##_Image|kage@FBfMt/btrGarptTYZ/gHFhQ60k0phUJzA2JDExPk/img.png|CDM|1.3|{"originWidth":684,"originHeight":145,"style":"alignCenter"}_##]
+</p>
+<p data-ke-size="size18"><b>2. RateDiscountPolicy 추가</b></p>
+<p data-ke-size="size18">
+  주문한 금액의 %를 할인해주는 새로운<span>&nbsp;</span><b>정률 할인 정책</b>을
+  추가하자.
+</p>
+<p>
+  [##_Image|kage@lEuiW/btrF7d7n9Ue/d6JeKvwkUIkxen04kYRTp0/img.png|CDM|1.3|{"originWidth":714,"originHeight":332,"style":"alignCenter"}_##]
+</p>
+<p data-ke-size="size18">static import</p>
+<p data-ke-size="size18">&nbsp;</p>
+<p data-ke-size="size18"><b>3. RateDiscountPolicy 코드 추가</b></p>
+<p data-ke-size="size18">
+  <b>DiscountPolicy 를 구현</b>한<span>&nbsp;</span><b>정률 할인 정책</b
+  ><span>&nbsp;</span>클래스를 만든다.
+</p>
+<pre
+  id="code_1656586725799"
+  class="angelscript"
+  data-ke-language="java"
+  data-ke-type="codeblock"
+><code>package hello.core.discount;
+
+import hello.core.member.Grade;
+import hello.core.member.Member;
+
+public class RateDiscountPolicy implements DiscountPolicy{
+
+    private int discountPercent = 10;    // 할인율(10%)
+    @Override
+    public int discount(Member member, int price) {
+        // VIP이면 10% 할인
+        if(member.getGrade() == Grade.VIP) {
+            return price * discountPercent / 100;
+        } else {
+            return 0;
+        }
+    }
+}</code></pre>
+<p data-ke-size="size18">&nbsp;</p>
+<p data-ke-size="size18"><b>4. 테스트 작성</b></p>
+<p data-ke-size="size18">
+  위에서 만든 RateDiscountPolicy 를 테스트 하는 코드다.
+</p>
+<p data-ke-size="size18">
+  <b>discount 메서드가 잘 작동하는지</b><span>&nbsp;</span>확인하기 위해서<span
+    >&nbsp;</span
+  ><b
+    ><span style="color: #409d00"
+      >할인이 <span style="color: #409d00">적용되어야</span> 하는 경우 &amp;
+      할인이 적용되지 않아야하는 경우</span
+    ><span>&nbsp;</span>2가지를 테스트</b
+  >하는 메서드를 만들었다.
+</p>
+<p data-ke-size="size18">
+  <span
+    ><b>성공할 경우</b>와<span>&nbsp;</span><b>실패할 경우</b><span>&nbsp;</span
+    ><b>2가지 모두를 테스트</b>하는 것이<span>&nbsp;</span
+    ><b>좋은 테스트 코드</b>다.</span
+  >
+</p>
+<pre
+  id="code_1656586725800"
+  class="java"
+  data-ke-language="java"
+  data-ke-type="codeblock"
+><code>package hello.core.discount;
+
+import hello.core.member.Grade;
+import hello.core.member.Member;
+import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
+import static org.assertj.core.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.*;
+
+class RateDiscountPolicyTest {
+
+    RateDiscountPolicy discountPolicy = new RateDiscountPolicy();
+
+    // 성공 테스트
+    @Test
+    @DisplayName("VIP는 10% 할인이 적용되어야 한다.")
+    void vip_o() {
+        // given
+        Member member = new Member(1L, "memberVIP", Grade.VIP);
+        // when
+        int discount = discountPolicy.discount(member, 10000);
+        // then
+        assertThat(discount).isEqualTo(1000);
+    }
+
+    // 실패 테스트
+    @Test
+    @DisplayName("VIP가 아니면 10% 할인이 적용되지 않아야 한다.")
+    void vip_x() {
+        // given
+        Member member = new Member(2L, "memberBASIC", Grade.BASIC);
+        // when
+        int discount = discountPolicy.discount(member, 10000);
+        // then
+        assertThat(discount).isEqualTo(0);
+    }
+}</code></pre>
+<p data-ke-size="size16">&nbsp;</p>
+<h3 data-ke-size="size23"><b>2. 새로운 할인 정책 적용과 문제점</b></h3>
+<p data-ke-size="size18"><b>1. 정률 할인 정책 적용하기</b></p>
+<p data-ke-size="size18">
+  할인 정책을<span>&nbsp;</span
+  ><b>고정 할인 정책-&gt; 정률 할인 정책</b>으로<span>&nbsp;</span
+  ><b>변경</b>하려면 클라이언트인<span style="color: #409d00"
+    ><b><span>&nbsp;</span>OrderServiceImpl</b><span>&nbsp;</span></span
+  ><b>클래스의 코드를 수정</b>해야 한다.
+</p>
+<pre
+  id="code_1656586725802"
+  class="haxe"
+  data-ke-language="java"
+  data-ke-type="codeblock"
+><code>public class OrderServiceImpl implements OrderService{
+	...
+    //private final DiscountPolicy discountPolicy = new FixDiscountPolicy();
+    // 정률 할인 정책으로 변경
+    private DiscountPolicy discountPolicy = new RateDiscountPolicy();
+
+    ...
+}</code></pre>
+<p data-ke-size="size18"><b>&lt;문제점&gt;</b></p>
+<p data-ke-size="size18">
+  <b>다형성</b>을 활용하여<span>&nbsp;</span><b>역할(인터페이스)</b>과<b
+    ><span>&nbsp;</span>구현(구현 객체)를 분리</b
+  >했지만,
+</p>
+<p data-ke-size="size18">
+  <b>1)<span>&nbsp;</span><span style="color: #409d00">OCP 위반</span></b>
+</p>
+<p data-ke-size="size18">
+  위 코드처럼 정률 할인 정책으로 변경하려면 코드를 고쳐야하므로<span
+    >&nbsp;</span
+  ><b>클라이언트(OrderServiceImpl)에 영향</b>을 준다.
+</p>
+<p data-ke-size="size18">
+  <b>2)<span>&nbsp;</span><span style="color: #409d00">DIP 위반</span></b>
+</p>
+<p data-ke-size="size18">
+  <b>주문 서비스 클라이언트(OrderServiceImpl)</b>은 실제로는<span>&nbsp;</span
+  ><b
+    ><span style="color: #409d00">인터페이스</span
+    ><span>&nbsp;</span>뿐아니라<span>&nbsp;</span
+    ><span style="color: #409d00">구현 클래스</span>에도 의존</b
+  >하고 있다.
+</p>
+<p data-ke-size="size18">
+  - 추상(인터페이스) 의존:<span>&nbsp;</span><b>DiscountPolicy</b>
+</p>
+<p data-ke-size="size18">
+  - 구체(구현) 클래스 의존:<span>&nbsp;</span
+  ><b>FixDiscountPolicy / RateDiscountPolicy</b>
+</p>
+<p data-ke-size="size18">&nbsp;</p>
+<p data-ke-size="size18"><b>2. 클라이언트 코드를 변경해야 하는 이유</b></p>
+<p data-ke-size="size18"><b>1) 기대했던 의존 관계</b></p>
+<p data-ke-size="size18">
+  지금까지 OrderServiceImpl은 단순히<span>&nbsp;</span
+  ><b>DiscountPolicy 인터페이스</b>만 의존한다고 생각했다.&nbsp;
+</p>
+<p>
+  [##_Image|kage@vrwRi/btrF9CkKvli/MEqZiPRyetNCp3n01BDJiK/img.png|CDM|1.3|{"originWidth":712,"originHeight":329,"style":"alignCenter","width":588,"height":272}_##]
+</p>
+<p data-ke-size="size18"><b>2) 실제 의존 관계</b></p>
+<p data-ke-size="size18">
+  하지만, 실제로<span>&nbsp;</span
+  ><span>OrderServiceImpl은<span>&nbsp;</span></span
+  ><b>DiscountPolicy 인터페이스</b>와<b
+    ><span>&nbsp;</span>FixDiscountPolicy 구체 클래스</b
+  >도 의존 하고 있다. -&gt;<span style="color: #409d00"
+    ><b><span>&nbsp;</span>DIP 위반!</b></span
+  >
+</p>
+<p>
+  [##_Image|kage@Ci2HH/btrGaqqzRfn/qgEahnpCq0zpcpV5ExiIOK/img.png|CDM|1.3|{"originWidth":714,"originHeight":329,"style":"alignCenter","width":586,"height":270}_##]
+</p>
+<p data-ke-size="size18">&nbsp;</p>
+<p data-ke-size="size18"><b>3. 정책 변경</b></p>
+<p data-ke-size="size18">
+  <b>FixDiscountPolicy</b><span>&nbsp;</span>를<span>&nbsp;</span
+  ><b>RateDiscountPolicy</b><span>&nbsp;</span>로 변경하는 순간<span
+    >&nbsp;</span
+  ><b>OrderServiceImpl</b>의 소스 코드도 함께 변경해야한다. -&gt;<b
+    ><span style="color: #409d00"><span>&nbsp;</span>OCP 위반!</span></b
+  >
+</p>
+<p>
+  [##_Image|kage@QJYYi/btrF758ZD2m/8sxzOFwDkDff7Je2vPwkK1/img.png|CDM|1.3|{"originWidth":711,"originHeight":409,"style":"alignCenter"}_##]
+</p>
+<p data-ke-size="size18">&nbsp;</p>
+<p data-ke-size="size18"><b>4. 어떻게 문제를 해결할 수 있을까?</b></p>
+<p data-ke-size="size18">
+  <span
+    ><b>인터페이스만 의존</b>하도록<span>&nbsp;</span
+    ><b>설계를 변경</b>하자!</span
+  >
+</p>
+<p>
+  [##_Image|kage@bz4Bkj/btrF9DcSoJx/J7GJnxQJR27L0YY1stG2o0/img.png|CDM|1.3|{"originWidth":718,"originHeight":335,"style":"alignCenter","width":564,"height":263}_##]
+</p>
+<p data-ke-size="size18">&nbsp;</p>
+<p data-ke-size="size18"><b>5. 인터페이스에만 의존하도록 코드 변경</b></p>
+<pre
+  id="code_1656586725805"
+  class="monkey"
+  data-ke-language="java"
+  data-ke-type="codeblock"
+><code>public class OrderServiceImpl implements OrderService {
+	...
+	//private final DiscountPolicy discountPolicy = new RateDiscountPolicy();
+	private DiscountPolicy discountPolicy;
+	...
+}</code></pre>
+<p data-ke-size="size18">
+  아래와 같이 인터페이스에만 의존하도록 설계와 코드를 변경한다.
+</p>
+<p data-ke-size="size18">
+  하지만, 실행해보면<span>&nbsp;</span><b>NPE(NullPointException)</b>이
+  발생한다.<span>&nbsp;</span><b>구현체가 없기 때문</b>이다.&nbsp;
+</p>
+<p data-ke-size="size18">&nbsp;</p>
+<p data-ke-size="size18"><b>&lt;해결방안&gt;</b></p>
+<p data-ke-size="size18">
+  누군가가 클라이언트인<span>&nbsp;</span><b>OrderServiceImpl</b>에<span
+    >&nbsp;</span
+  ><span style="color: #409d00"><b>DiscountPolicy의 구현 객체</b></span
+  >를<span>&nbsp;</span><b>대신 생성하고 주입</b>해주어야 한다.
+</p>
+<p data-ke-size="size18">&nbsp;</p>
+<h3 data-ke-size="size23"><b>3. 관심사의 분리</b></h3>
+<p data-ke-size="size18">
+  "<b>애플리케이션 = 공연, 각 인테페이스 = 배역(역할), 구현 객체 = 배우</b>"
+  라고 생각해보자.
+</p>
+<p data-ke-size="size18">
+  그런데 실제 배역을 맞는 배우를 선택하는 것은 누가 하는가??
+</p>
+<p data-ke-size="size18">&nbsp;</p>
+<p data-ke-size="size18">
+  이전 코드는 로미오 역할(인터페이스)를 하는 레오나르도 디카프리오 배우(구현
+  객체)가 줄리엣 역할(인터페이스)를 하는 올리비아 핫세 배우(구현 객체)를 직접
+  초빙하는 것과 같다. 디카프리오는 공연도 해야하고 동시에 여자 주인공도 직접
+  초빙해야하는<b><span>&nbsp;</span>다양한 책임</b>을 갖고 있다.
+</p>
+<p data-ke-size="size18">&nbsp;</p>
+<p data-ke-size="size18"><b>1. 관심사를 분리하자</b></p>
+<p data-ke-size="size18">
+  - 배우는 본인의 역할인 배역을 수행하는 것에만 집중해야 한다.
+</p>
+<p data-ke-size="size18">
+  - 디카프리오는 어떤 여자 주인공이 선택되더라도 똑같이 공연을 할 수 있어야
+  한다.
+</p>
+<p data-ke-size="size18">
+  - 공연을 구성하고, 담당 배우를 섭외하고, 역할에 맞는 배우를 지정하는 책임을
+  담당하는 별도의<span>&nbsp;</span><b>공연 기획자</b>가 나올시점이다.
+</p>
+<p data-ke-size="size18">
+  - 공연 기획자를 만들고, 배우와 공연 기획자의 책임을 확실히 분리하자.
+</p>
+<h3 data-ke-size="size23"><b>3-1. AppConfig 등장</b></h3>
+<p data-ke-size="size18"><b>1. AppConfig</b></p>
+<p data-ke-size="size18">
+  <b>애플리케이션의 전체 동작 방식을 구성(config)</b
+  ><span>하기 위해<span>&nbsp;</span></span
+  ><span style="color: #409d00"><b>구현 객체를 생성, 연결</b></span
+  >하는 책임을 가진<b><span>&nbsp;</span>별도의 설정 클래스</b>를 만든다.
+</p>
+<pre
+  id="code_1656586758012"
+  class="haxe"
+  data-ke-language="java"
+  data-ke-type="codeblock"
+><code>package hello.core;
+
+import hello.core.discount.FixDiscountPolicy;
+import hello.core.member.MemberService;
+import hello.core.member.MemberServiceImpl;
+import hello.core.member.MemoryMemberRepository;
+import hello.core.order.OrderService;
+import hello.core.order.OrderServiceImpl;
+
+public class AppConfig {
+    // 생성자 주입
+    public MemberService memberService() {
+        return new MemberServiceImpl(new MemoryMemberRepository());
+    }
+    // 생성자 주입
+    public OrderService orderService() {
+        return new OrderServiceImpl(new MemoryMemberRepository(), new FixDiscountPolicy());
+    }
+}</code></pre>
+<p data-ke-size="size18">
+  1) AppConfig는 애플리케이셔느이 실제 동작에 필요한<span>&nbsp;</span
+  ><b>구현 객체를 생성</b>한다.
+</p>
+<ul style="list-style-type: disc" data-ke-list-type="disc">
+  <li>MemberServiceImpl</li>
+  <li>MemoryMemberRepository</li>
+  <li>OrderServiceImpl</li>
+  <li>FixDiscountPolicy</li>
+</ul>
+<p data-ke-size="size18">
+  2) AppConfig는 생성한 객체 인스턴스의 참조(레퍼런스)를<span>&nbsp;</span
+  ><b>생성자를 통해서 주입(연결)</b>해준다.
+</p>
+<ul style="list-style-type: disc" data-ke-list-type="disc">
+  <li><b>MemberServiceImpl &rarr; MemoryMemberRepository</b></li>
+  <li>
+    <b>OrderServiceImpl &rarr; MemoryMemberRepository, FixDiscountPolicy</b>
+  </li>
+</ul>
+<p data-ke-size="size18"><b>2. MemberServiceImpl - 생성자 주입</b></p>
+<pre
+  id="code_1656586758013"
+  class="aspectj"
+  data-ke-language="java"
+  data-ke-type="codeblock"
+><code>package hello.core.member;
+
+public class MemberServiceImpl implements MemberService{
+    // MemberServiceImpl 은 MemberRepository 인터페이스에만 의존
+    private final MemberRepository memberRepository;
+
+    // 의존성 주입(DI)
+    public MemberServiceImpl(MemberRepository memberRepository) {
+        this.memberRepository = memberRepository;
+    }
+
+    @Override
+    public void join(Member member) {
+        memberRepository.save(member);
+
+    }
+
+    @Override
+    public Member findMember(Long memberId) {
+        return memberRepository.findById(memberId);
+    }
+}</code></pre>
+<p data-ke-size="size18">
+  기존에는 MemberServiceImpl 이 MemoryMemberRepository 를 직접 생성했지만<span
+    >&nbsp;</span
+  ><b>설계 변경</b><span>&nbsp;</span><b>후</b>,
+</p>
+<p data-ke-size="size18">
+  <b
+    ><span
+      >MemberServiceImpl &rarr;<span>&nbsp;</span
+      ><span>MemoryMeberRepository 구현 객체 의존X</span></span
+    ></b
+  >
+</p>
+<p data-ke-size="size18">
+  <b
+    ><span
+      ><b
+        ><span
+          >MemberServiceImpl<span>&nbsp;</span>&rarr;<span>&nbsp;</span></span
+        ></b
+      >MemberRepository 인터페이스에만 의존O</span
+    ></b
+  >
+</p>
+<p data-ke-size="size18">
+  - MemberServiceImpl 은 생성자를 통해 어떤 구현 객체가 주입될지 알 수 없다.
+</p>
+<p data-ke-size="size18">
+  -<b><span>&nbsp;</span>MemberServiceImpl 의 생성자</b>를 통해<b
+    ><span>&nbsp;</span>어떤 구현 객체를 주입할지</b
+  >는 오직<span>&nbsp;</span
+  ><span style="color: #409d00"><b>외부(AppConfig)</b></span
+  >에서 결정된다.
+</p>
+<p data-ke-size="size18">
+  <span
+    ><b>MemberServiceImpl</b><span>&nbsp;</span>은 이제부터<b
+      ><span>&nbsp;</span>의존관계에 대한 고민은 외부</b
+    >에 맡기고<span>&nbsp;</span><b>실행에만 집중</b>하면 된다!</span
+  >
+</p>
+<p data-ke-size="size18">&nbsp;</p>
+<p data-ke-size="size18"><b>3. 그림 - 클래스 다이어그램</b></p>
+<p>
+  [##_Image|kage@dfbSmz/btrF9hBaTiL/cYXcf3lBzBZHbKHLagazo0/img.png|CDM|1.3|{"originWidth":712,"originHeight":463,"style":"alignCenter","width":624,"height":406}_##]
+</p>
+<p data-ke-size="size18">
+  객체의 생성과 연결은<b><span>&nbsp;</span>AppConfig</b>가 담당한다.
+</p>
+<p data-ke-size="size18">
+  -<b><span>&nbsp;</span>DIP 완성</b>:<span>&nbsp;</span><b>MemberServiceImpl</b
+  ><span>&nbsp;</span>은<b><span>&nbsp;</span>MemberRepository</b
+  ><span>&nbsp;</span>인터페이스만 의존한다. (구현체는 알 필요X)
+</p>
+<p data-ke-size="size18">
+  -<span>&nbsp;</span><b>관심사의 분리</b>:<span>&nbsp;</span
+  ><span style="color: #409d00"><b>객체를 생성, 연결하는 역할</b></span
+  ><span>&nbsp;</span><b>&amp;</b><span>&nbsp;</span
+  ><span style="color: #409d00"><b>실행하는 역할</b></span
+  >이<span>&nbsp;</span><b>분리</b>됨!
+</p>
+<p data-ke-size="size18">&nbsp;</p>
+<p data-ke-size="size18"><b>4. 그림 - 회원 객체 인스턴스 다이어그램</b></p>
+<p>
+  [##_Image|kage@o4Cd8/btrF76Uqi3Q/9eCemK8fMGfZAtW4dlKRKK/img.png|CDM|1.3|{"originWidth":714,"originHeight":302,"style":"alignCenter","width":615,"height":260}_##]
+</p>
+<p data-ke-size="size18">
+  <b>- appConfig</b><span>&nbsp;</span>객체는<span>&nbsp;</span
+  ><b>memoryMemberRepository</b><span>&nbsp;</span>객체를 생성하고 그
+  참조값을<span>&nbsp;</span><b>memberServiceImpl</b><span>&nbsp;</span>을
+  생성하면서<span>&nbsp;</span><b>생성자로 전달</b>한다.
+</p>
+<p data-ke-size="size18">
+  - 클라이언트인<span>&nbsp;</span><b>memberServiceImpl</b
+  ><span>&nbsp;</span>입장에서 보면<span>&nbsp;</span
+  ><b>의존관계를 외부에서 주입</b>해주는 것 같다고 해서<span>&nbsp;</span
+  ><span style="color: #409d00"
+    ><b>DI(Dependency Injection)</b><span>&nbsp;</span></span
+  >우리말로<span>&nbsp;</span
+  ><span style="color: #409d00"><b>의존관계 주입</b></span
+  ><span>&nbsp;</span>또는<span style="color: #409d00"
+    ><span>&nbsp;</span><b>의존성 주입</b></span
+  >이라 한다.
+</p>
+<p data-ke-size="size18">&nbsp;</p>
+<p data-ke-size="size18"><b>5. OrderServiceImpl - 생성자 주입</b></p>
+<pre
+  id="code_1656586758016"
+  class="java"
+  data-ke-language="java"
+  data-ke-type="codeblock"
+><code>package hello.core.order;
+
+import hello.core.discount.DiscountPolicy;
+import hello.core.member.Member;
+import hello.core.member.MemberRepository;
+import hello.core.member.MemoryMemberRepository;
+
+public class OrderServiceImpl implements OrderService{
+    // 인터페이스에만 의존하도록 변경(DIP 만족)
+    private final MemberRepository memberRepository;
+    private final DiscountPolicy discountPolicy;
+
+    // 의존성 주입(DI)
+    public OrderServiceImpl(MemberRepository memberRepository, DiscountPolicy discountPolicy) {
+        this.memberRepository = memberRepository;
+        this.discountPolicy = discountPolicy;
+    }
+
+    @Override
+    public Order createOrder(Long memberId, String itemName, int itemPrice) {
+        Member member = memberRepository.findById(memberId);            // 해당 id를 가진 회원 조회
+        int discountPrice = discountPolicy.discount(member, itemPrice); // 회원의 등급에 따른 할인 금액
+
+        return new Order(memberId, itemName, itemPrice, discountPrice); // 최종 생성된 주문 반환
+    }
+}</code></pre>
+<p data-ke-size="size18">
+  기존에는 OrderServiceImpl 이 MemoryMemberRepository, FixDiscountPolicy 를 직접
+  생성했지만<span>&nbsp;</span><b>설계 변경</b><span>&nbsp;</span><b>후</b>,
+</p>
+<p data-ke-size="size18">
+  <b
+    ><span
+      >OrderServiceImpl<span>&nbsp;</span>&rarr;<span>&nbsp;</span
+      ><span
+        >MemoryMeberRepository, FixDiscountPolicy 구현 객체 의존X</span
+      ></span
+    ></b
+  >
+</p>
+<p data-ke-size="size18">
+  <b
+    ><span
+      ><b
+        ><span
+          >OrderServiceImpl<span>&nbsp;</span>&rarr;<span>&nbsp;</span></span
+        ></b
+      >MemberRepository,
+      DiscountPolicy<span>&nbsp;</span>인터페이스에만<span>&nbsp;</span>의존O</span
+    ></b
+  >
+</p>
+<p data-ke-size="size18">
+  - OrderServiceImpl 은 생성자를 통해 어떤 구현 객체가 주입될지 알 수 없다.
+</p>
+<p data-ke-size="size18">
+  -<b><span>&nbsp;</span>OrderServiceImpl 의 생성자</b>를 통해<b
+    ><span>&nbsp;</span>어떤 구현 객체를 주입할지</b
+  >는 오직<span>&nbsp;</span
+  ><span style="color: #409d00"><b>외부(AppConfig)</b></span
+  >에서 결정된다.
+</p>
+<p data-ke-size="size18">
+  <span
+    ><b>OrderServiceImpl</b><span>&nbsp;</span>은 이제부터<b
+      ><span>&nbsp;</span>의존관계에 대한 고민은 외부</b
+    >에 맡기고<span>&nbsp;</span><b>실행에만 집중</b>하면 된다!</span
+  >
+</p>
+<h3 data-ke-size="size23"><b>3-2. AppConfig 실행&nbsp;</b></h3>
+<p data-ke-size="size18"><b>1. 사용 클래스 - MemberApp</b></p>
+<p data-ke-size="size18">
+  MemberServiceImpl을 직접 생성하지 않고 생성한<span>&nbsp;</span
+  ><b>AppConfig</b>를 이용하여<b><span>&nbsp;</span>MemberServiceImpl을 생성</b
+  >하고<span>&nbsp;</span><b>&nbsp;MemberService 에 연결</b>해준다.
+</p>
+<pre
+  id="code_1656586758018"
+  class="arduino"
+  data-ke-language="java"
+  data-ke-type="codeblock"
+><code>package hello.core;
+
+import hello.core.member.Grade;
+import hello.core.member.Member;
+import hello.core.member.MemberService;
+import hello.core.member.MemberServiceImpl;
+
+public class MemberApp {
+
+    public static void main(String[] args) {
+        AppConfig appConfig = new AppConfig();
+        MemberService memberService = appConfig.memberService();
+        //MemberService memberService = new MemberServiceImpl();
+        Member member = new Member(1L, "memberA", Grade.VIP);
+        memberService.join(member);
+
+        Member findMember = memberService.findMember(1L);
+        System.out.println("new member = " + member.getName());
+        System.out.println("findMember = " + findMember.getName());
+    }
+}</code></pre>
+<p data-ke-size="size18">&nbsp;</p>
+<p data-ke-size="size18"><b>2. 사용 클래스 - OrderApp</b></p>
+<p data-ke-size="size18">
+  <span>- MemberServiceImpl을 직접 생성하지 않고 생성한<span>&nbsp;</span></span
+  ><b>AppConfig</b>를 이용하여<b><span>&nbsp;</span>MemberServiceImpl을 생성</b
+  ><span>하고<span>&nbsp;</span></span
+  ><b>&nbsp;MemberService 에 연결</b>해준다.
+</p>
+<p data-ke-size="size18">
+  <span>- OrderServiceImpl을 직접 생성하지 않고 생성한<span>&nbsp;</span></span
+  ><b>AppConfig</b>를 이용하여<b><span>&nbsp;</span>OrderServiceImpl을 생성</b
+  ><span>하고<span>&nbsp;</span></span
+  ><b><span>&nbsp;</span>OrderService 에 연결</b>해준다.
+</p>
+<pre
+  id="code_1656586758019"
+  class="pgsql"
+  data-ke-language="java"
+  data-ke-type="codeblock"
+><code>package hello.core;
+
+import hello.core.member.Grade;
+import hello.core.member.Member;
+import hello.core.member.MemberService;
+import hello.core.member.MemberServiceImpl;
+import hello.core.order.Order;
+import hello.core.order.OrderService;
+import hello.core.order.OrderServiceImpl;
+
+public class OrderApp {
+    public static void main(String[] args) {
+
+        AppConfig appConfig = new AppConfig();
+        MemberService memberService = appConfig.memberService();
+        OrderService orderService = appConfig.orderService();
+        //MemberService memberService = new MemberServiceImpl();
+        //OrderService orderService = new OrderServiceImpl();
+
+        Long memberId = 1L;
+        Member member = new Member(memberId, "memberA", Grade.VIP);
+        memberService.join(member);
+
+        Order order = orderService.createOrder(memberId, "itemA", 10000);
+
+        System.out.println("order = " + order); // order.toString() 출력됨
+        //System.out.println("order.calculatePrice = " + order.calculatePrice()); // 할인된 최종 가격
+    }
+}</code></pre>
+<p data-ke-size="size18">&nbsp;</p>
+<p data-ke-size="size18"><b>3. 테스트 코드 오류 수정</b></p>
+<p data-ke-size="size18"><b>1) MemberServiceTest 수정</b></p>
+<pre
+  id="code_1656586758020"
+  class="java"
+  data-ke-language="java"
+  data-ke-type="codeblock"
+><code>public class MemberServiceTest {
+    
+    MemberService memberService;
+    
+    // 각 테스트 실행 전에 실행됨
+    @BeforeEach
+    public void beforeEach() {
+        AppConfig appConfig = new AppConfig();
+        memberService = appConfig.memberService();
+    }
+
+	...
+}</code></pre>
+<p data-ke-size="size18">&nbsp;</p>
+<p data-ke-size="size18"><b>2) OrderServiceTest 수정</b></p>
+<pre
+  id="code_1656586758020"
+  class="java"
+  data-ke-language="java"
+  data-ke-type="codeblock"
+><code>public class OrderServiceTest {
+    MemberService memberService;
+    OrderService orderService;
+
+    // 각 테스트 실행 전에 실행됨
+    @BeforeEach
+    public void beforeEach() {
+        AppConfig appConfig = new AppConfig();
+        memberService = appConfig.memberService();
+        orderService = appConfig.orderService();
+    }
+
+    ...
+}</code></pre>
+<p data-ke-size="size18">&nbsp;</p>
+<p data-ke-size="size18">
+  <span><b>&lt;정리&gt;</b></span>
+</p>
+<p data-ke-size="size18">- AppConfig를 통해 관심사를 확실히 분리함</p>
+<p data-ke-size="size18">
+  - AppConfig 는 구체 클래스를 선택한다. (배역에 맞는 담당 배우를 선택하는 것과
+  동일)
+</p>
+<p data-ke-size="size18">
+  - OrderServiceImpl 은 기능을 실행하는 책임만 지면 된다.
+</p>
+<h3 data-ke-size="size23"><b>4. AppConfig 리팩터링</b></h3>
+<p data-ke-size="size18">
+  현재 AppConfig는<span>&nbsp;</span><b>중복</b>이 있고<span>&nbsp;</span
+  ><b>역할</b>에 따른<span>&nbsp;</span><b>구현</b>이 잘 안보인다.
+</p>
+<p data-ke-size="size18">&nbsp;</p>
+<p data-ke-size="size18"><b>1. 기대하는 그림</b></p>
+<p>
+  [##_Image|kage@bo73OL/btrF7erEOOz/WKUk8mRRgAIknCI9OZQ6pk/img.png|CDM|1.3|{"originWidth":706,"originHeight":489,"style":"alignCenter"}_##]
+</p>
+<p data-ke-size="size18">&nbsp;</p>
+<p data-ke-size="size18"><b>2. 리팩터링 전</b></p>
+<pre
+  id="code_1656586758021"
+  class="haxe"
+  data-ke-language="java"
+  data-ke-type="codeblock"
+><code>public class AppConfig {
+    // 생성자 주입
+    public MemberService memberService() {
+        return new MemberServiceImpl(new MemoryMemberRepository());
+    }
+    // 생성자 주입
+    public OrderService orderService() {
+        return new OrderServiceImpl(new MemoryMemberRepository(), new FixDiscountPolicy());
+    }
+}</code></pre>
+<p data-ke-size="size18">
+  -&nbsp;<b>MemoryMemberRepository</b><span>&nbsp;</span>를 2번 new 하는<span
+    >&nbsp;</span
+  ><b>중복</b>이 있음
+</p>
+<p data-ke-size="size18">
+  - 이 코드는<b><span>&nbsp;</span>Memberservice</b><span>&nbsp;</span>와<b
+    ><span>&nbsp;</span>OrderService</b
+  ><span>&nbsp;</span>역할에 대한 구현만 보이고,<b
+    ><span>&nbsp;</span>DiscountPolicy</b
+  ><span>&nbsp;</span>와<span>&nbsp;</span><b>MemberRepository</b
+  ><span>&nbsp;</span>역할에 따른 구현은 잘 보이지 않는다.
+</p>
+<p data-ke-size="size18">&nbsp;</p>
+<p data-ke-size="size18"><b>3. 리팩터링 후</b></p>
+<p data-ke-size="size18">
+  <b>중복을 제거</b>하고<span>&nbsp;</span><b>역할에 따른 구현</b>이 잘 보이도록
+  리팩터링 하였다.
+</p>
+<p data-ke-size="size18">
+  <b>AppConfig</b><span>&nbsp;</span>를 보면<b
+    ><span style="color: #409d00"><span>&nbsp;</span>역할</span>과<span
+      >&nbsp;</span
+    ><span style="color: #409d00">구현</span><span>&nbsp;</span>클래스</b
+  >가 한눈에 들어온다.<span>&nbsp;</span><b>애플리케이션 전체 구성</b>이 어떻게
+  되어있는지 빠르게 파악할 수 있다.
+</p>
+<pre
+  id="code_1656586758022"
+  class="cpp"
+  data-ke-language="java"
+  data-ke-type="codeblock"
+><code>public class AppConfig {
+    // MemberService 역할(생성자 주입)
+    public MemberService memberService() {
+        return new MemberServiceImpl(memberRepository());
+    }
+
+    // MemberRepository 역할
+    private MemberRepository memberRepository() {
+        return new MemoryMemberRepository();    // 메모리 회원 저장소로
+    }
+
+    // OrderService 역할 (생성자 주입)
+    public OrderService orderService() {
+        return new OrderServiceImpl(memberRepository(), discountPolicy());
+    }
+
+    // DiscountPolicy 역할
+    public DiscountPolicy discountPolicy() {
+        return new FixDiscountPolicy();     // 고정 할인 정책으로
+    }
+}</code></pre>
+<p data-ke-size="size18">
+  <b
+    >1) new MemoryMemberRepository() 부분 중복 제거, 역할에 따른 구현 잘 보이게
+    하기</b
+  >
+</p>
+<p data-ke-size="size18">
+  -<span>&nbsp;</span><b>MemoryMemberRepository</b><span>&nbsp;</span>를 다른
+  구현체로 변경할 때<b
+    ><span>&nbsp;</span>MemberRepository 역할을 하는 메서드 한 부분만 변경</b
+  >하면 된다.
+</p>
+<p data-ke-size="size18">
+  <b>2) DiscountPolicy 역할에 따른 구현 잘 보이게 하기</b>
+</p>
+<p data-ke-size="size18">
+  <span
+    >-<b
+      ><span><span>&nbsp;</span>Fix</span></b
+    ></span
+  ><b>DiscountPolicy</b
+  ><span><span>&nbsp;</span>를 다른 구현체로 변경할 때</span
+  ><b><span>&nbsp;</span>DiscountPolicy 역할을 하는 메서드</b
+  ><span><span>&nbsp;</span><b>한 부분만 변경</b>하면 된다.</span>
+</p>
+<p data-ke-size="size18">&nbsp;</p>
+<h3 data-ke-size="size23"><b>5. 새로운 구조와 할인 정책 적용</b></h3>
+<p data-ke-size="size18">정액 할인 정책을 정률 할인 정책으로 변경한다.&nbsp;</p>
+<p data-ke-size="size18"><b>FixDiscountPolicy &rarr; RateDiscountPolicy</b></p>
+<p data-ke-size="size18">
+  <b
+    ><span
+      ><span style="color: #409d00">AppConfig</span>의 등장으로 애플리케이션이
+      크게<span>&nbsp;</span
+      ><span style="color: #409d00"
+        >사용 영역<span style="color: #000000"><span>&nbsp;</span>&amp;</span
+        ><span>&nbsp;</span>객체를 생성하고 구성하는 영역</span
+      >으로 분리되었다!</span
+    ></b
+  >
+</p>
+<p data-ke-size="size18">&nbsp;</p>
+<p data-ke-size="size18"><b>1. 그림 - 사용, 구성의 분리</b></p>
+<p>
+  [##_Image|kage@1SRFa/btrF9SgBlNw/nJ4MN9iz3G0hJtBRQr3SrK/img.png|CDM|1.3|{"originWidth":715,"originHeight":492,"style":"alignCenter"}_##]
+</p>
+<p data-ke-size="size18"><b>2. 그림 - 할인 정책의 변경(중요!)</b></p>
+<p>
+  [##_Image|kage@b32oeA/btrF8QKykhO/OLZuestHM8FIkU1p60wwjk/img.png|CDM|1.3|{"originWidth":714,"originHeight":487,"style":"alignCenter"}_##]
+</p>
+<p data-ke-size="size18">
+  <b>FixDiscountPolicy &rarr; RateDiscountPolicy&nbsp;</b>로 변경해도<span
+    >&nbsp;</span
+  ><b
+    ><span style="color: #409d00">구성</span><span>&nbsp;</span
+    ><span style="color: #409d00">영역</span>만 영향O,<span>&nbsp;</span
+    ><span style="color: #409d00">사용 영역</span>은 영향X</b
+  >
+</p>
+<p data-ke-size="size18">&nbsp;</p>
+<p data-ke-size="size18"><b>3. 할인 정책 변경 구성 코드</b></p>
+<pre
+  id="code_1656586776951"
+  class="cpp"
+  data-ke-language="java"
+  data-ke-type="codeblock"
+><code>public class AppConfig {
+    // MemberService 역할(생성자 주입)
+    public MemberService memberService() {
+        return new MemberServiceImpl(memberRepository());
+    }
+
+    // MemberRepository 역할
+    private MemberRepository memberRepository() {
+        return new MemoryMemberRepository();    // 메모리 회원 저장소로
+    }
+
+    // OrderService 역할 (생성자 주입)
+    public OrderService orderService() {
+        return new OrderServiceImpl(memberRepository(), discountPolicy());
+    }
+
+    // DiscountPolicy 역할
+    public DiscountPolicy discountPolicy() {
+        //return new FixDiscountPolicy();     // 고정 할인 정책으로
+        return new RateDiscountPolicy();    // 정률 할인 정책으로 변경
+    }
+}</code></pre>
+<p data-ke-size="size18">
+  -<span>&nbsp;</span><b>AppConfig</b><span>&nbsp;</span>에서 할인 정책 역햘을
+  담당하는 구현을<span>&nbsp;</span
+  ><b>FixDiscountPolicy &rarr; RateDiscountPolicy</b><span>&nbsp;</span>객체로
+  변경했다.
+</p>
+<p data-ke-size="size18">
+  - 할인 정책을 변경해도 애플리케이션의<span>&nbsp;</span><b>구성 역할</b>을
+  담당하는<b><span>&nbsp;</span>AppConfig</b>만 변경하면 된다.
+</p>
+<p data-ke-size="size18">
+  -<span>&nbsp;</span><b>구성 영역은 당연히 변경된다.</b
+  ><span>&nbsp;</span>(구성 역할을 담당하는 AppConfig = 애플리케이션의 공연
+  기획자, 공연 기획자는 공연 참여자인 구현 객체를 모두 알아야 함)
+</p>
+<h3 data-ke-size="size23"><b>6. 전체 흐름 정리</b></h3>
+<p data-ke-size="size18"><b>1. 새로운 할인 정책 개발</b></p>
+<p data-ke-size="size18">
+  <b>다형성</b><span>&nbsp;</span>덕분에 새로운 정률 할인 정책 코드를 추가로
+  개발하는 것 자체는 아무 문제가 없음
+</p>
+<p data-ke-size="size18">
+  (인터페이스를 implements 한 구현체를 만들어서 개발함)
+</p>
+<p data-ke-size="size18">&nbsp;</p>
+<p data-ke-size="size18"><b>2. 새로운 할인 정책 적용과 문제점</b></p>
+<p data-ke-size="size18"><b>1) OCP 위반</b></p>
+<p data-ke-size="size18">
+  새로 개발한 정률 할인 정책을 적용하기 위해<span>&nbsp;</span
+  ><b>클라이언트 코드</b>인 주문 서비스 구현체도 함께<span>&nbsp;</span
+  ><b>변경</b>해야함
+</p>
+<p data-ke-size="size18"><b>2) DIP 위반</b></p>
+<p data-ke-size="size18">
+  주문 서비스 클라이언트가 인터페이스인<span>&nbsp;</span><b>DiscountPolicy</b
+  ><span>&nbsp;</span>뿐만 아니라, 구체 클래스인<b
+    ><span>&nbsp;</span>FixDiscountPolicy</b
+  ><span>&nbsp;</span>도 함께<span>&nbsp;</span><b>의존&nbsp;</b>
+</p>
+<p data-ke-size="size18">&nbsp;</p>
+<p data-ke-size="size18"><b>3. 관심사의 분리</b></p>
+<p data-ke-size="size18">
+  <b>● AppConfig:<span>&nbsp;</span></b
+  >애플리케이션의 전체 동작 방식을 구성(config)하기 위해,<span>&nbsp;</span
+  ><span style="color: #409d00"><b>구현 객체를 생성, 연결</b></span
+  >하는 책임
+</p>
+<p data-ke-size="size18">
+  이제부터<b><span>&nbsp;</span>클라이언트 객체</b>는<span>&nbsp;</span
+  ><b>자신의 역할을 실행</b>하는 것만 집중, 권한이 줄어듬(<b>책임이 명확</b
+  >해짐)
+</p>
+<p data-ke-size="size18">&nbsp;</p>
+<p data-ke-size="size18"><b>4. AppConfig 리팩터링</b></p>
+<p data-ke-size="size18">- 구성 정보에서 역할과 구현을 명확하게 분리</p>
+<p data-ke-size="size18">- 각 역할에서 구현 객체 생성 및 연결, 중복 제거</p>
+<p data-ke-size="size18">&nbsp;</p>
+<p data-ke-size="size18"><b>5. 새로운 구조와 할인 정책 적용</b></p>
+<p data-ke-size="size18">- 정액 할인 정책 &rarr; 정률 할인 정책으로 변경</p>
+<p data-ke-size="size18">
+  -<b><span>&nbsp;</span>AppConfig 의 등장</b>으로 애플리케이션이<span
+    >&nbsp;</span
+  ><b>사용 영역 &amp; 구성 영역</b><span>&nbsp;</span>으로 분리
+</p>
+<p data-ke-size="size18">
+  -<span>&nbsp;</span
+  ><span
+    >할인 정책을 변경해도 AppConfig가 있는<span>&nbsp;</span
+    ><b>구성 영역만 변경</b>,<span>&nbsp;</span
+    ><b>사용 영역 및 클라이언트 코드 변경X</b></span
+  >
+</p>
+<h3 data-ke-size="size23"><b>7. 좋은 객체 지향 설계의 5가지 원칙의 적용</b></h3>
+<p data-ke-size="size18">여기서 SRP, DIP, OCP 3가지가 적용되었다.</p>
+<p data-ke-size="size18">&nbsp;</p>
+<p data-ke-size="size18"><b>1. SRP(단일 책임 원칙)</b></p>
+<p data-ke-size="size18"><b>한 클래스는 하나의 책임만 가져야 한다.</b></p>
+<p data-ke-size="size18">1) 기존</p>
+<p data-ke-size="size18">
+  -<span>&nbsp;</span><b>클라이언트 객체</b>: 직접<span>&nbsp;</span
+  ><b>구현 객체 생성, 연결, 실행</b>하는 다양한 책임
+</p>
+<p data-ke-size="size18">2) SRP 단일 책임 원칙을 따르면서 관심사를 분리</p>
+<p data-ke-size="size18">
+  -<b><span>&nbsp;</span>AppConfig</b>:<span>&nbsp;</span
+  ><b>구현 객체 생성, 연결</b>하는 책임
+</p>
+<p data-ke-size="size18">
+  -<span>&nbsp;</span><b>클라이언트 객체</b>:<span>&nbsp;</span><b>실행</b>하는
+  책임
+</p>
+<p data-ke-size="size18">&nbsp;</p>
+<p data-ke-size="size18"><b>2. DIP(의존 관계 역전 원칙)</b></p>
+<p data-ke-size="size18">
+  <b
+    >프로그래머는 &ldquo;추상화에 의존해야지, 구체화에 의존하면 안된다.&rdquo;
+    의존성 주입은 이 원칙을 따르는 방법 중 하나다.</b
+  >
+</p>
+<p data-ke-size="size18">
+  1) 기존&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+  &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&nbsp;
+</p>
+<p data-ke-size="size18">
+  - 새로운 할인 정책을 개발하고 적용할 때 클라이언트 코드를 변경하게 됨
+</p>
+<p data-ke-size="size18">
+  (기존 클라이언트<span>&nbsp;</span><b>OrderServiceImpl</b>은<span>&nbsp;</span
+  ><b>DiscountPolicy 인터페이스 &amp; FixDiscountPolicy 구현체</b
+  ><span>&nbsp;</span>에도<span>&nbsp;</span><b>의존</b>했기 때문에)
+</p>
+<p data-ke-size="size18">2) 변경</p>
+<p data-ke-size="size18">
+  -<span>&nbsp;</span><b>클라이언트 객체</b>:<span>&nbsp;</span
+  ><b>DiscountPolicy</b><span>&nbsp;</span>인터페이스에만<span>&nbsp;</span
+  ><b>의존</b>
+</p>
+<p data-ke-size="size18">
+  -<b><span>&nbsp;</span>AppConfig</b>:<span>&nbsp;</span
+  ><b>FixDiscountPolicy 객체</b><span>&nbsp;</span>인스턴스를 클라이언트
+  대신<span>&nbsp;</span><b>생성</b>, 클라이언트 코드에<span>&nbsp;</span
+  ><b>의존 관계 주입</b>
+</p>
+<p data-ke-size="size18">&nbsp;</p>
+<p data-ke-size="size18"><b>3. OCP(개방 폐쇄 원칙)</b></p>
+<p data-ke-size="size18">
+  <b>소프트웨어 요소는 확장에는 열려 있으나 변경에는 닫혀 있어야 한다.</b>
+</p>
+<p data-ke-size="size18">
+  1) 애플리케이션을 사용 영역 &amp; 구성 영역으로 분리
+</p>
+<p data-ke-size="size18">
+  - AppConfig가 의존 관계를 FixDiscountPolicy -&gt; RateDiscountPolicy 로
+  변경해서 클라이언트 코드에 주입하므로 클라이언트 코드는 변경X
+</p>
+<p data-ke-size="size18">
+  <span
+    ><b
+      >소프트웨어 요소를 새롭게 확장해도 사용 영역의 변경은 닫혀 있다!</b
+    ></span
+  >
+</p>
+<p data-ke-size="size18">&nbsp;</p>
+<h3 data-ke-size="size23"><b>8. Ioc, DI, 그리고 컨테이너&nbsp;</b></h3>
+<p data-ke-size="size18"><b>1. 제어의 역전: Ioc(Inversion of Control)</b></p>
+<p data-ke-size="size18">
+  <span style="color: #409d00"><b>프로그램의 제어 흐름</b></span
+  >을<span>&nbsp;</span><b>직접 제어하는 것이 아니라</b
+  ><span style="color: #409d00"
+    ><b><span>&nbsp;</span>외부에서 관리</b></span
+  ><b>하는 것</b>을<span>&nbsp;</span><b>제어의 역전(IoC)</b>라 한다.
+</p>
+<p data-ke-size="size18"><b>1) 기존 프로그램</b></p>
+<p data-ke-size="size18">
+  기존 프로그램은<span>&nbsp;</span><b>구현 객체</b>가<span>&nbsp;</span
+  ><b>프로그램 제어 흐름</b>을<b><span>&nbsp;</span>스스로 제어</b>했다.
+</p>
+<p data-ke-size="size18">
+  - 클라이언트 구현 객체가 스스로 필요한 서버 구현 객체를 생성, 연결, 실행 했다.
+</p>
+<p data-ke-size="size18"><b>2) AppConfig 등장</b></p>
+<p data-ke-size="size18">
+  AppConfig의 등장 후,<b><span>&nbsp;</span>구현 객체</b>는<span>&nbsp;</span
+  ><b>자신의 로직을 실행</b>하는 역할만 담당하고<span>&nbsp;</span
+  ><b>프로그램의 제어 흐름</b>은<span>&nbsp;</span><b>AppConfig</b>가 가져간다.
+</p>
+<p data-ke-size="size18">
+  - OrderServiceImpl은 필요한 인터페이스를 호출하지만 어떤 구현 객체들이
+  실행될지 모른다.
+</p>
+<p data-ke-size="size18">- OrderServiceImpl도 AppConfig가 생성한다.</p>
+<p data-ke-size="size18">
+  - AppConfig가 OrderServiceImpl이 아닌 OrderService 인터페이스의 다른 구현
+  객체를 생성할 수도 있다.
+</p>
+<p data-ke-size="size18">&nbsp;</p>
+<p data-ke-size="size18"><b>2. 프레임워크 vs 라이브러리</b></p>
+<p data-ke-size="size18">
+  프레임워크와 라이브러리를 구분할 때 제어의 역전이 중요하다!
+</p>
+<p data-ke-size="size18"><b>1) 프레임워크(내가 제어 흐름 갖지 X)</b></p>
+<p data-ke-size="size18">
+  프레임워크는 내가 작성한 코드를 제어하고 대신 실행한다.
+</p>
+<p data-ke-size="size18">
+  - e.g.<span>&nbsp;</span><b>JUnit&nbsp;</b>: MemberServiceTest의 @Test join()
+  와 같은 테스트를 실행하고 제어하는 권한은 JUnit, 테스트 프레임워크가 갖고
+  있다.&nbsp;
+</p>
+<p data-ke-size="size18"><b>2) 라이브러리(내가 제어 흐름 갖고 O)</b></p>
+<p data-ke-size="size18">
+  내가 작성한 코드가 직접 제어의 흐름을 담당한다면 그것은 라이브러리다.
+</p>
+<p data-ke-size="size18">&nbsp;</p>
+<p data-ke-size="size18"><b>3. 의존관계 주입: DI(Dependency Injection)</b></p>
+<p data-ke-size="size18">
+  <span
+    >의존 관계는&nbsp;<b
+      >정적인 클래스 의존 관계 &amp; 실행 시점에 결정되는 동적인 객체(인스턴스)
+      의존 관계</b
+    >&nbsp;2개를 분리해서 생각해야 한다.</span
+  >
+</p>
+<p data-ke-size="size18">
+  - OrderServiceImpl은 DiscountPolicy 인터페이스에 의존하지만 실제 어떤 구현
+  객체가 사용될지는 모른다.
+</p>
+<p data-ke-size="size18">&nbsp;</p>
+<p data-ke-size="size18"><b>4. 정적인 클래스 의존관계</b></p>
+<p data-ke-size="size18">
+  <b>클래스가 사용하는 import 코드</b>만 보고 의존 관계를 쉽게 판단할 수 있다.
+</p>
+<p data-ke-size="size18">
+  정적인 클래스 의존관계는<span>&nbsp;</span
+  ><b>애플리케이션을 실행하지 않아도 분석</b>할 수 있다.
+</p>
+<p data-ke-size="size18">
+  (참고) Intellij 에서 Diagrams &gt; Show Diagram &gt; Show Dependency 의존 관계
+  볼 수 O
+</p>
+<pre
+  id="code_1656586815638"
+  class="actionscript"
+  data-ke-language="java"
+  data-ke-type="codeblock"
+><code>import hello.core.discount.DiscountPolicy;
+import hello.core.member.Member;
+import hello.core.member.MemberRepository;
+
+public class OrderServiceImpl implements OrderService{
+...
+}</code></pre>
+<p data-ke-size="size18">
+  -<b><span>&nbsp;</span>OrderServiceImpl</b>은<span>&nbsp;</span
+  ><b>MemberRepository, DiscountPolicy</b><span>&nbsp;</span>에 의존함을 알 수 O
+</p>
+<p data-ke-size="size18">
+  - 이 클래스 의존 관계만으로 실제 어떤 객체가 OrderServiceImpol에 주입될 지 알
+  수 X(FixDiscountPolicy 일지, RateDiscountPolicy 일지 알 수 X)
+</p>
+<p data-ke-size="size18">&nbsp;</p>
+<p data-ke-size="size18"><b>5. 클래스 다이어그램</b></p>
+<p>
+  [##_Image|kage@6Is6X/btrF9gPLu9P/krBemA4gY53vE5CSpruMAK/img.png|CDM|1.3|{"originWidth":714,"originHeight":499,"style":"alignCenter"}_##]
+</p>
+<p data-ke-size="size18"><b>6. 동적인 객체 인스턴스 의존 관계</b></p>
+<p data-ke-size="size18">
+  애플리케이션<span>&nbsp;</span><b>실행 시점</b>에 실제 생성된 객체 인스턴스의
+  참조가 연결된 의존 관계다.
+</p>
+<p data-ke-size="size18">&nbsp;</p>
+<p data-ke-size="size18"><b>7. 객체 다이어그램</b></p>
+<p>
+  [##_Image|kage@lrbcA/btrGaWCMVVQ/3bHygy3QI9t9HNjsr2a7lk/img.png|CDM|1.3|{"originWidth":711,"originHeight":221,"style":"alignCenter"}_##]
+</p>
+<p data-ke-size="size18">
+  <span><b>&lt;의존관계 주입&gt;</b></span>
+</p>
+<p data-ke-size="size18">
+  의존관계 주입<span>은 애플리케이션</span
+  ><b><span style="color: #409d00">실행 시점(런타임)</span></b
+  >에<span>&nbsp;</span
+  ><b
+    >외부에서 실제 구현 객체를<span>&nbsp;</span
+    ><span style="color: #409d00">생성</span></b
+  >하고<span>&nbsp;</span><b>클라이언트에 전달</b>해서<span>&nbsp;</span
+  ><b
+    >클라이언트와 서버의 실제 의존 관계가<span>&nbsp;</span
+    ><span style="color: #409d00">연결</span></b
+  >된는 것을 말한다.
+</p>
+<p data-ke-size="size18">
+  - 객체 인스턴스를 생성하고, 그 참조값을 전달해서 연결된다.
+</p>
+<p data-ke-size="size18">
+  - 의존관계 주입을 사용하면 클라이언트 코드를 변경하지 않고, 클라이언트가
+  호출하는 대상의 타입 인스턴스를 변경할 수 있다.
+</p>
+<p data-ke-size="size18">
+  - 의존관계 주입을 사용하면<span>&nbsp;</span
+  ><b
+    ><span style="color: #409d00">정적인 클래스 의존관계</span>를 변경하지
+    않고,<span>&nbsp;</span
+    ><span style="color: #409d00">동적인 객체 인스턴스 의존관계</span>를 쉽게
+    변경</b
+  >할 수 있다.<b><span>&nbsp;</span>(중요!)</b>
+</p>
+<p data-ke-size="size18">&nbsp;</p>
+<p data-ke-size="size18"><b>8. Ioc 컨테이너, DI 컨테이너</b></p>
+<p data-ke-size="size18">
+  <b
+    >AppConfig 처럼<span>&nbsp;</span
+    ><span style="color: #409d00">객체를 생성</span>하고<span>&nbsp;</span
+    ><span style="color: #409d00">관리</span>하면서<span>&nbsp;</span
+    ><span style="color: #409d00">의존관계를 연결</span>해주는 것</b
+  >을<b><span>&nbsp;</span></b
+  ><b><span style="color: #409d00">DI 컨테이너</span>(Ioc컨테이너)</b>라고 한다.
+  (어셈블러, 오브젝트 팩토리 등으로 불리기도 함)
+</p>
+<h3 data-ke-size="size23"><b>9. 스프링으로 전환하기</b></h3>
+<p data-ke-size="size18">
+  지금까지는 순수 자바 코드만으로 DI를 적용했지만 이제는 스프링을 사용해보자.
+</p>
+<p data-ke-size="size18"><b>1. AppConfig 스프링 기반으로 변경</b></p>
+<p data-ke-size="size18">
+  <b>AppConfig 클래스 앞</b>에<span>&nbsp;</span
+  ><span style="color: #409d00"><b>@Configuration</b></span
+  ><span>&nbsp;</span>을 추가하고<span>&nbsp;</span><b>모든 메서드 앞</b>에<span
+    style="color: #409d00"
+    ><b><span>&nbsp;</span>@Bean</b></span
+  >을 추가한다.
+</p>
+<pre
+  id="code_1656586815641"
+  class="java"
+  data-ke-language="java"
+  data-ke-type="codeblock"
+><code>package hello.core;
+
+import hello.core.discount.DiscountPolicy;
+import hello.core.discount.RateDiscountPolicy;
+import hello.core.member.MemberRepository;
+import hello.core.member.MemberService;
+import hello.core.member.MemberServiceImpl;
+import hello.core.member.MemoryMemberRepository;
+import hello.core.order.OrderService;
+import hello.core.order.OrderServiceImpl;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+// 애플리케이션 설정(구성) 정보
+@Configuration
+public class AppConfig {
+    // MemberService 역할 스프링 빈 등록
+    @Bean
+    public MemberService memberService() {
+        // 생성자 주입
+        return new MemberServiceImpl(memberRepository());
+    }
+
+    // MemberRepository 역할 스프링 빈 등록
+    @Bean
+    public MemberRepository memberRepository() {
+        return new MemoryMemberRepository();    // 메모리 회원 저장소로
+    }
+
+    // OrderService 역할 스프링 빈 등록
+    @Bean
+    public OrderService orderService() {
+        // 생성자 주입
+        return new OrderServiceImpl(memberRepository(), discountPolicy());
+    }
+
+    // DiscountPolicy 역할 스프링 빈 등록
+    @Bean
+    public DiscountPolicy discountPolicy() {
+        //return new FixDiscountPolicy();     // 고정 할인 정책으로
+        return new RateDiscountPolicy();    // 정률 할인 정책으로 변경
+    }
+}</code></pre>
+<ul style="list-style-type: disc" data-ke-list-type="disc">
+  <li>
+    <b>@Configuration</b>:<span>&nbsp;</span><b>설정 파일</b>을 만들기 위한
+    어노테이션
+  </li>
+  <li><b>@Bean</b>:<span>&nbsp;</span><b>스프링 빈</b>으로 등록</li>
+</ul>
+<p data-ke-size="size18"><b>2. MemberApp에 스프링 컨테이너 적용</b></p>
+<p data-ke-size="size18"><b>1) 기존</b></p>
+<p data-ke-size="size18">
+  주석처리된 2줄처럼 AppConfig 객체를 생성하고 appConfig의 memberService()
+  메서드를 호출해<span>&nbsp;</span><b>memberService 객체를 직접 조회</b>했다.
+</p>
+<p data-ke-size="size18"><b>2) 스프링 컨테이너 적용</b></p>
+<p data-ke-size="size18">
+  AppConfig의 설정 정보를 갖고<span>&nbsp;</span><b>스프링 빈</b>을<span
+    >&nbsp;</span
+  ><b>스프링 컨테이너에 넣어서 관리</b>한다.
+</p>
+<p data-ke-size="size18">
+  스프링 컨테이너를 통해<span>&nbsp;</span
+  ><b>스프링 빈(memberService) 를 조회</b>해서<span>&nbsp;</span
+  ><b>사용</b>한다.
+</p>
+<pre
+  id="code_1656586815643"
+  class="java"
+  data-ke-language="java"
+  data-ke-type="codeblock"
+><code>package hello.core;
+
+import hello.core.member.Grade;
+import hello.core.member.Member;
+import hello.core.member.MemberService;
+import hello.core.member.MemberServiceImpl;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+
+public class MemberApp {
+
+    public static void main(String[] args) {
+//        AppConfig appConfig = new AppConfig();
+//        MemberService memberService = appConfig.memberService();
+        // AppConfig에 있는 설정 정보를 토대로 스프링 컨테이너에 넣어서 관리
+        ApplicationContext applicationContext = new AnnotationConfigApplicationContext(AppConfig.class);
+        // 스프링 컨테이너를 통해 memberService를 찾음(이름=메서드명, 타입)
+        MemberService memberService = applicationContext.getBean("memberService", MemberService.class);
+
+        Member member = new Member(1L, "memberA", Grade.VIP);
+        memberService.join(member);
+
+        Member findMember = memberService.findMember(1L);
+        System.out.println("new member = " + member.getName());
+        System.out.println("findMember = " + findMember.getName());
+    }
+}</code></pre>
+<ul style="list-style-type: disc" data-ke-list-type="disc">
+  <li><b>ApplicationContext: 스프링 컨테이너</b></li>
+  <li>
+    <b>applicaiotn.getBean()</b>: 스프링 컨테이너에서 해당 (이름, 타입)인<span
+      >&nbsp;</span
+    ><b>스프링 빈을 조회</b>
+  </li>
+</ul>
+<p data-ke-size="size18">
+  <b>3) MemberApp 실행하여 스프링 컨테이너에 스프링 빈 등록된 결과</b>
+</p>
+<p data-ke-size="size18">&nbsp;</p>
+<p>
+  [##_Image|kage@duRcye/btrF9RvcbQI/KwnF3RlR65lo5lkDfkLi1k/img.png|CDM|1.3|{"originWidth":740,"originHeight":158,"style":"alignCenter"}_##]
+</p>
+<p data-ke-size="size18">&nbsp;</p>
+<p data-ke-size="size18"><b>3. OrderApp에 스프링 컨테이너 적용</b></p>
+<p data-ke-size="size18"><b>1) 기존</b></p>
+<p data-ke-size="size18">
+  주석처리된 3줄처럼 AppConfig 객체를 생성하고 appConfig의 memberService(),
+  orderService() 메서드를 호출해<b
+    ><span>&nbsp;</span>memberService, orderService 객체를 직접 조회</b
+  >했다.
+</p>
+<p data-ke-size="size18"><b>2) 스프링 컨테이너 적용</b></p>
+<p data-ke-size="size18">
+  AppConfig의 설정 정보를 갖고<span>&nbsp;</span><b>스프링 빈</b>을<span
+    >&nbsp;</span
+  ><b>스프링 컨테이너에 넣어서 관리</b>한다.
+</p>
+<p data-ke-size="size18">
+  스프링 컨테이너를 통해<span>&nbsp;</span
+  ><b>스프링 빈(memberService, orderService) 를 조회</b>해서<span>&nbsp;</span
+  ><b>사용</b>한다.
+</p>
+<pre
+  id="code_1656586815644"
+  class="pgsql"
+  data-ke-language="java"
+  data-ke-type="codeblock"
+><code>package hello.core;
+
+import hello.core.member.Grade;
+import hello.core.member.Member;
+import hello.core.member.MemberService;
+import hello.core.member.MemberServiceImpl;
+import hello.core.order.Order;
+import hello.core.order.OrderService;
+import hello.core.order.OrderServiceImpl;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+
+public class OrderApp {
+    public static void main(String[] args) {
+//        AppConfig appConfig = new AppConfig();
+//        MemberService memberService = appConfig.memberService();
+//        OrderService orderService = appConfig.orderService();
+        // AppConfig에 있는 설정 정보를 토대로 스프링 컨테이너에 넣어서 관리
+        ApplicationContext applicationContext = new AnnotationConfigApplicationContext(AppConfig.class);
+        // 스프링 컨테이너를 통해 memberService, orderService를 찾음(이름=메서드명, 타입)
+        MemberService memberService = applicationContext.getBean("memberService", MemberService.class);
+        OrderService orderService = applicationContext.getBean("orderService", OrderService.class);
+
+        Long memberId = 1L;
+        Member member = new Member(memberId, "memberA", Grade.VIP);
+        memberService.join(member);
+
+        Order order = orderService.createOrder(memberId, "itemA", 20000);
+
+        System.out.println("order = " + order); // order.toString() 출력됨
+        //System.out.println("order.calculatePrice = " + order.calculatePrice()); // 할인된 최종 가격
+    }
+}</code></pre>
+<ul style="list-style-type: disc" data-ke-list-type="disc">
+  <li><b>ApplicationContext: 스프링 컨테이너</b></li>
+  <li>
+    <b>applicaiotn.getBean()</b>: 스프링 컨테이너에서 해당 (이름, 타입)인<span
+      >&nbsp;</span
+    ><b>스프링 빈을 조회</b>
+  </li>
+</ul>
+<p data-ke-size="size18">
+  <b>3) OrderApp 실행하여 스프링 컨테이너에 스프링 빈 등록된 결과</b>
+</p>
+<p>
+  [##_Image|kage@V0JfD/btrF6JLwTWB/dSlXserb1EnpOSskQNFfQK/img.png|CDM|1.3|{"originWidth":740,"originHeight":158,"style":"alignCenter"}_##]
+</p>
+<p data-ke-size="size18">&nbsp;</p>
+<p data-ke-size="size18"><b>4. 스프링 컨테이너</b></p>
+<p data-ke-size="size18">
+  <b>스프링 컨테이너</b>는<span>&nbsp;</span><b>스프링 빈을 생성</b>하고<b
+    ><span>&nbsp;</span>관리하는 컨테이너</b
+  >로<span style="color: #409d00"
+    ><b><span>&nbsp;</span>Application.Context</b></span
+  >를 스프링 컨테이너라 한다.
+</p>
+<p data-ke-size="size18">
+  <b
+    ><span style="color: #000000">1)<span>&nbsp;</span></span
+    ><span style="color: #409d00">@Configuration</span></b
+  ><span>&nbsp;</span>이 붙은 AppConfig를<span>&nbsp;</span
+  ><b>설정(구성) 정보</b>로 사용한다.
+</p>
+<p data-ke-size="size18">
+  <b
+    ><span style="color: #409d00"
+      ><b
+        ><span style="color: #000000">2)<span>&nbsp;</span></span></b
+      >@Bean</span
+    ></b
+  >이라 적힌<span>&nbsp;</span><b>메서드를 모두 호출해서 반환된 객체</b>를
+  스프링 컨테이너에<span>&nbsp;</span
+  ><b><span style="color: #409d00">스프링 빈</span>으로 등록</b>한다.
+</p>
+<p data-ke-size="size18">
+  - 스프링 빈은 default로<b>&nbsp;@Bean이 붙은 메서드의 명</b>을<span
+    >&nbsp;</span
+  ><b>스프링 빈의 이름</b>으로 사용한다. (memberService, orderService)
+</p>
+<pre
+  id="code_1656586815646"
+  class="java"
+  data-ke-language="java"
+  data-ke-type="codeblock"
+><code>// @Bean이 붙은 메서드명 = memberService
+@Bean
+public MemberService memberService() {
+    // 생성자 주입
+    return new MemberServiceImpl(memberRepository());
+}
+
+// 스프링 빈의 이름 = memberService
+MemberService memberService = applicationContext.getBean("memberService", MemberService.class);</code></pre>
+<p data-ke-size="size16">&nbsp;</p>
+<p data-ke-size="size18">
+  <b
+    >3)<span>&nbsp;</span
+    ><span style="color: #409d00">applicationContext.getBean()</span></b
+  ><span>&nbsp;</span>메서드로 스프링 컨테이너를 통해 필요한<span>&nbsp;</span
+  ><b>스프링 빈(객체)를 조회</b>한다.
+</p>
+<p data-ke-size="size18">&nbsp;</p>
+<p data-ke-size="size18">
+  <span><b>&lt;정리&gt;</b></span>
+</p>
+<p data-ke-size="size18">
+  기존에는 개발자가 AppConfig를 사용해 직접 객체를 생성하고 DI를 했지만,
+</p>
+<p data-ke-size="size18">
+  스프링 컨테이너에 객체를 스프링 빈으로 등록하고 스프링 컨테이너에서 스프링
+  빈을 찾아 사용하도록 변경하였다.
+</p>
+<p data-ke-size="size18">&nbsp;</p>
+<p data-ke-size="size18">
+  <span
+    ><b
+      >Q. 코드가 약간 더 복잡해진 것 같은데, 스프링 컨테이너를 사용하면 어떤
+      이점이 있을까?</b
+    ></span
+  >
+</p>
+<p data-ke-size="size18">싱글톤을 직접 구현하지 않아도 된다.</p>
+<p data-ke-size="size18">&nbsp;</p>
