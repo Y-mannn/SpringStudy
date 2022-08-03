@@ -37,7 +37,7 @@
 | 이름 | 블로그 주소| 
 | ---- | -------- |
 |건영|✨[재야의 건영이가 고수가되는 과정](https://almondshin.tistory.com/) ✨|
-|인혁|✨---✨|
+|인혁|✨[개발자 노트](https://y-mannn.tistory.com/)✨|
 |윤정|✨---✨|
 |준식|✨[방개의 놀이터](https://js5kr.tistory.com/)✨|
 
